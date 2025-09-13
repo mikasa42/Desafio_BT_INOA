@@ -19,6 +19,8 @@ O objetivo é criar um sistema capaz de monitorar a cotação de ativos da **B3*
 ### Exemplo de uso:
 ```bash
 stock-quote-alert.exe PETR4 22.67 22.59
+```bash
+
 
 ## Configuração do E-mail (Gmail)
 
