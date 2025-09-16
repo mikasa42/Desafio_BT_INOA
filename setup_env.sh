@@ -147,6 +147,8 @@ EOF
 # 6. Baixar as dependências do Go
 echo "Baixando as dependências do Go..."
 go mod tidy
+go get github.com/mattn/go-sqlite3
+go get gonum.org/v1/plot/...
 
 # 7. Baixar a biblioteca da Alpha Vantage
 echo "Baixando a biblioteca da Alpha Vantage..."
