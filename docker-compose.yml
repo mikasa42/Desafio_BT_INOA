@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  monitor:
+    build: .
+    container_name: stock-monitor
+    restart: unless-stopped
+    command: ["--ativo", "PETR4.SA", "--venda", "28.50", "--compra", "28.00"]
+    volumes:
+      # Monta o arquivo de configuração para que você possa editá-lo
+      # sem precisar reconstruir a imagem do Docker
+      - ./config.ini:/root/config.ini
