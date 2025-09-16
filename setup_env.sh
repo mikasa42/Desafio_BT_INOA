@@ -148,6 +148,10 @@ EOF
 echo "Baixando as dependências do Go..."
 go mod tidy
 
+# 7. Baixar a biblioteca da Alpha Vantage
+echo "Baixando a biblioteca da Alpha Vantage..."
+go get github.com/gocar/alpha-vantage-go
+
 echo ""
 echo "${GREEN}${BOLD}Ambiente configurado com sucesso!${RESET}"
 echo "----------------------------------------------------"
