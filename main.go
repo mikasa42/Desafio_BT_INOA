@@ -240,7 +240,7 @@ func main() {
 	log.Printf("Alvo de Venda: > %.2f", precoVenda)
 	log.Printf("Alvo de Compra: < %.2f", precoCompra)
 	log.Println("---------------------------------")
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 	ultimoAlerta := ""
 
