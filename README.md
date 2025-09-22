@@ -37,6 +37,7 @@ stock-quote-alert.exe PETR4 22.67 22.59
 ### Exemplo de uso:
 ```ini
 ## Subindo um container docker
+./setup_env.sh #para preparar o ambiente
 docker-compose up --build
 docker-compose down
 
