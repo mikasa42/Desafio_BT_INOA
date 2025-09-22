@@ -36,12 +36,14 @@ stock-quote-alert.exe PETR4 22.67 22.59
 
 ### Exemplo de uso:
 ```ini
-[Email]
-Destinatario = seu.email.destino@gmail.com
+## Subindo um container docker
+docker-compose up --build
+docker-compose down
 
-[SMTP]
-Servidor = smtp.gmail.com
-Porta = 587
-Usuario = seu.email@gmail.com
-Senha = sua_senha_de_app_de_16_digitos
+## Rodando a aplicação manualmente
+./setup_env.sh #para preparar o ambiente
+go run main.go --ativo {ativo} --venda {valor} --compra {valor}
+inserir o email desejado.
+inserir senha do email. 
+
 ```
