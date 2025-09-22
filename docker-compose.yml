@@ -5,8 +5,14 @@ services:
     build: .
     container_name: stock-monitor
     restart: unless-stopped
+    #Coloquei esse ativo como padrão mas é possivel alterar
     command: ["--ativo", "PETR4.SA", "--venda", "28.50", "--compra", "28.00"]
     volumes:
       # Monta o arquivo de configuração para que você possa editá-lo
       # sem precisar reconstruir a imagem do Docker
       - ./config.ini:/root/config.ini
+    environment:
+      # O Docker irá passar essas variáveis para o seu programa
+      # ATENÇÃO: Nunca suba o seu docker-compose.yml com senhas para um repositório público!
+      - EMAIL_PASSWORD=jbjb dyju kpyr iogj
+      - EMAIL_USUARIO=aulasfisica4@gmail.com

@@ -14,65 +14,32 @@ RESET=$(tput sgr0)
 PROJECT_NAME="stock-alert-go"
 MODULE_NAME="stock-alert-go"
 
-# --- Função para Instalação do Go ---
+# --- Função para Instalação e Atualização do Go ---
 install_go() {
-    echo "${YELLOW}Go não encontrado. Tentando instalar...${RESET}"
+    echo "${YELLOW}Go não encontrado ou versão desatualizada. Tentando instalar a versão mais recente...${RESET}"
 
-    # Detecta o Sistema Operacional
-    OS="$(uname -s)"
-    case "${OS}" in
-        Linux*)
-            echo "Detectado sistema Linux."
-            # Detecta a Distribuição
-            if [ -f /etc/os-release ]; then
-                # shellcheck source=/dev/null
-                source /etc/os-release
-                DISTRO=$ID
-            else
-                echo "${YELLOW}Não foi possível determinar a distribuição Linux. Por favor, instale o Go manualmente.${RESET}"
-                exit 1
-            fi
+    # Baixa a versão mais recente do Go
+    GO_VERSION="1.23.0"
+    GO_ARCHIVE="go${GO_VERSION}.linux-amd64.tar.gz"
+    GO_DOWNLOAD_URL="https://go.dev/dl/${GO_ARCHIVE}"
 
-            case "$DISTRO" in
-                ubuntu|debian|mint)
-                    echo "${BLUE}Distribuição baseada em Debian/Ubuntu detectada.${RESET}"
-                    echo "Será necessário usar 'sudo' para instalar pacotes. Sua senha pode ser solicitada."
-                    sudo apt-get update && sudo apt-get install -y golang-go
-                    ;;
-                fedora|centos|rhel)
-                    echo "${BLUE}Distribuição baseada em Fedora/RHEL detectada.${RESET}"
-                    echo "Será necessário usar 'sudo' para instalar pacotes. Sua senha pode ser solicitada."
-                    sudo dnf install -y golang
-                    ;;
-                arch)
-                    echo "${BLUE}Distribuição Arch Linux detectada.${RESET}"
-                    echo "Será necessário usar 'sudo' para instalar pacotes. Sua senha pode ser solicitada."
-                    sudo pacman -Syu --noconfirm go
-                    ;;
-                *)
-                    echo "${YELLOW}Distribuição Linux não suportada para instalação automática: ${DISTRO}${RESET}"
-                    echo "Por favor, instale o Go manualmente em: https://go.dev/doc/install"
-                    exit 1
-                    ;;
-            esac
-            ;;
-        Darwin*)
-            echo "Detectado sistema macOS."
-            if ! command -v brew &> /dev/null; then
-                echo "${YELLOW}Homebrew (brew) não encontrado.${RESET}"
-                echo "Para instalar o Go automaticamente, por favor, primeiro instale o Homebrew: https://brew.sh/"
-                echo "Ou instale o Go manualmente: https://go.dev/doc/install"
-                exit 1
-            fi
-            echo "${BLUE}Usando Homebrew para instalar o Go...${RESET}"
-            brew install go
-            ;;
-        *)
-            echo "${YELLOW}Sistema operacional não suportado para instalação automática: ${OS}${RESET}"
-            echo "Por favor, instale o Go manualmente em: https://go.dev/doc/install"
-            exit 1
-            ;;
-    esac
+    if ! command -v wget &> /dev/null; then
+        echo "O comando 'wget' não foi encontrado. Por favor, instale-o (ex: sudo apt install wget) ou baixe o Go manualmente."
+        exit 1
+    fi
+    wget "$GO_DOWNLOAD_URL"
+
+    # Remove qualquer instalação antiga e extrai a nova
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf "$GO_ARCHIVE"
+    rm "$GO_ARCHIVE"
+
+    # Adiciona o Go ao PATH do usuário
+    if ! grep -q "/usr/local/go/bin" "$HOME/.profile"; then
+        echo "export PATH=\$PATH:/usr/local/go/bin" >> "$HOME/.profile"
+        echo "${GREEN}Adicionado /usr/local/go/bin ao seu PATH. Por favor, reinicie seu terminal ou execute 'source ~/.profile'.${RESET}"
+    fi
+
     echo "${GREEN}Instalação do Go concluída.${RESET}"
 }
 
@@ -81,8 +48,9 @@ install_go() {
 
 echo "${BOLD}Iniciando a configuração do ambiente para o projeto '${PROJECT_NAME}'...${RESET}"
 
-# 1. Verificar se o Go está instalado, caso contrário, instalar.
-if ! command -v go &> /dev/null; then
+# 1. Verificar se o Go está instalado e é uma versão recente
+GO_VERSION_REQUIRED=1.21
+if ! command -v go &> /dev/null || [ "$(go version | grep -oP 'go\K[0-9]+\.[0-9]+')" -lt "$GO_VERSION_REQUIRED" ]; then
     install_go
 fi
 
@@ -95,7 +63,6 @@ else
     exit 1
 fi
 
-# O restante do script continua como antes...
 # 2. Criar a estrutura do projeto
 if [ -d "$PROJECT_NAME" ]; then
     echo "${YELLOW}O diretório '${PROJECT_NAME}' já existe. Pulando a criação.${RESET}"
@@ -118,48 +85,52 @@ Destinatario = seu-email-de-destino@exemplo.com
 [SMTP]
 Servidor = smtp.gmail.com
 Porta = 587
-Usuario = seu-email-de-envio@gmail.com
-Senha = sua-senha-de-aplicativo
+Usuario = aulasfisica4@gmail.com
+Senha = jbjb dyju kpyr iogj
 
+[AlphaVantage]
+ChaveAPI = N723FNULRCE2TO84
 EOF
 
-# 5. Criar o esqueleto do arquivo main.go
-echo "Criando esqueleto do arquivo ${BOLD}main.go${RESET}..."
-cat << EOF > main.go
+# 5. Bibliotecas necessarias
+echo "Importando bibliotecas necessarias ..."
+cat << 'EOF' > main.go
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/piquette/finance-go/quote"
-	"gopkg.in/ini.v1"
+	_ "github.com/mattn/go-sqlite3" // Driver SQLite
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/plotutil"
+	"gonum.org/v1/plot/vg"
+
 	"gopkg.in/gomail.v2"
+	"gopkg.in/ini.v1"
+	"bufio"
+  "strings"
 )
 
-func main() {
-	log.Println("Arquivo main.go criado. Cole o código completo aqui.")
-}
 EOF
 
 # 6. Baixar as dependências do Go
 echo "Baixando as dependências do Go..."
 go mod tidy
-go get github.com/mattn/go-sqlite3
-go get gonum.org/v1/plot/...
-
-# 7. Baixar a biblioteca da Alpha Vantage
-echo "Baixando a biblioteca da Alpha Vantage..."
-go get github.com/gocar/alpha-vantage-go
 
 echo ""
 echo "${GREEN}${BOLD}Ambiente configurado com sucesso!${RESET}"
 echo "----------------------------------------------------"
 echo ""
 echo "${BOLD}Próximos Passos:${RESET}"
-echo "1. ${YELLOW}Edite o arquivo 'config.ini'${RESET} com suas informações."
-echo "2. ${YELLOW}Abra 'main.go'${RESET} e cole o código completo do monitor de ações."
-echo "3. ${YELLOW}Execute o programa:${RESET}"
-echo "   ${BOLD}go run main.go --ativo PETR4 --venda 28.50 --compra 28.00${RESET}"
+echo " ${YELLOW}Execute o programa:${RESET}"
+echo "   ${BOLD}go run main.go --ativo {ativo} --venda {valor} --compra {valor}${RESET}"

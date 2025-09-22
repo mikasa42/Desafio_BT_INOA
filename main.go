@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+    "database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -20,6 +20,8 @@ import (
 
 	"gopkg.in/gomail.v2"
 	"gopkg.in/ini.v1"
+	"bufio"
+    "strings"
 )
 
 // --- Structs de Configuração ---
@@ -57,31 +59,76 @@ func parseArgs() (string, float64, float64) {
 }
 
 func carregarConfiguracoes(path string) (*AppConfig, error) {
-	cfg, err := ini.Load(path)
-	if err != nil {
-		return nil, fmt.Errorf("falha ao ler o arquivo de configuração: %v", err)
-	}
-	porta, err := cfg.Section("SMTP").Key("Porta").Int()
-	if err != nil {
-		return nil, fmt.Errorf("porta SMTP inválida: %v", err)
-	}
-	config := &AppConfig{
-		SMTP: SmtpConfig{
-			Servidor: cfg.Section("SMTP").Key("Servidor").String(),
-			Porta:    porta,
-			Usuario:  cfg.Section("SMTP").Key("Usuario").String(),
-			Senha:    cfg.Section("SMTP").Key("Senha").String(),
-		},
-		Email: EmailConfig{
-			Destinatario: cfg.Section("Email").Key("Destinatario").String(),
-		},
-		AlphaVantage: AlphaVantageConfig{
-			ChaveAPI: cfg.Section("AlphaVantage").Key("ChaveAPI").String(),
-		},
-	}
-	return config, nil
-}
+    // Tenta ler as credenciais das variáveis de ambiente
+    emailUsuario := os.Getenv("EMAIL_USUARIO")
+    emailSenha := os.Getenv("EMAIL_PASSWORD")
+    chaveApi := os.Getenv("ALPHA_VANTAGE_API_KEY")
 
+    // Se qualquer uma das variáveis de ambiente estiver vazia,
+    // lê o arquivo de configuração e solicita a entrada do usuário
+    if emailUsuario == "" || emailSenha == "" || chaveApi == "" {
+        cfg, err := ini.Load(path)
+        if err != nil {
+           return nil, fmt.Errorf("falha ao ler o arquivo de configuração: %v", err)
+        }
+
+        // Lê a chave da API do arquivo (se não estiver na variável de ambiente)
+        if chaveApi == "" {
+            chaveApi = cfg.Section("AlphaVantage").Key("ChaveAPI").String()
+            if chaveApi == "" {
+                 return nil, fmt.Errorf("chave da API não encontrada no arquivo de configuração")
+            }
+        }
+
+        // Pede o email e a senha do usuário
+        reader := bufio.NewReader(os.Stdin)
+        if emailUsuario == "" {
+            fmt.Print("Por favor, insira seu email (usuario@exemplo.com): ")
+            input, _ := reader.ReadString('\n')
+            emailUsuario = strings.TrimSpace(input)
+            if emailUsuario == "" {
+                 return nil, fmt.Errorf("o email não foi fornecido")
+            }
+        }
+        if emailSenha == "" {
+            fmt.Print("Por favor, insira a senha do aplicativo (EMAIL_PASSWORD): ")
+            input, _ := reader.ReadString('\n')
+            emailSenha = strings.TrimSpace(input)
+            if emailSenha == "" {
+                 return nil, fmt.Errorf("a senha do email não foi fornecida")
+            }
+        }
+    }
+
+    // Configurações restantes do arquivo .ini
+    cfg, err := ini.Load(path)
+    if err != nil {
+        return nil, fmt.Errorf("falha ao ler o arquivo de configuração: %v", err)
+    }
+
+    porta, err := cfg.Section("SMTP").Key("Porta").Int()
+    if err != nil {
+        porta = 587 // Valor padrão
+    }
+
+    servidor := cfg.Section("SMTP").Key("Servidor").String()
+
+    config := &AppConfig{
+       SMTP: SmtpConfig{
+          Servidor: servidor,
+          Porta:    porta,
+          Usuario:  emailUsuario,
+          Senha:    emailSenha,
+       },
+       Email: EmailConfig{
+          Destinatario: emailUsuario, // Usa o mesmo email de login!
+       },
+       AlphaVantage: AlphaVantageConfig{
+          ChaveAPI: chaveApi,
+       },
+    }
+    return config, nil
+}
 // --- Estruturas para Decodificar o JSON da API ---
 type GlobalQuoteResponse struct {
 	GlobalQuote struct {
@@ -240,7 +287,7 @@ func main() {
 	log.Printf("Alvo de Venda: > %.2f", precoVenda)
 	log.Printf("Alvo de Compra: < %.2f", precoCompra)
 	log.Println("---------------------------------")
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	ultimoAlerta := ""
 
